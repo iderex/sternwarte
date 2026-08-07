@@ -24,6 +24,22 @@
 # It fails closed on a scanner error. `git grep` exits 0 on a match, 1 on no
 # match, and 2 or above when it could not do its job. A broken scanner is not a
 # clean tree, so anything above 1 ends the run non-zero.
+#
+# What it cannot do, and this is not a defect to be fixed here.
+#
+# A SEARCH READS TEXT AND NOT CODE. A pattern matches a comment, a docstring and
+# a string literal exactly as it matches a call, so an entry can fail on a file
+# that only mentions the thing it forbids. That was measured rather than
+# supposed: the neighbour fixture written for the default-suite entry named the
+# forbidden module in its own docstring and the entry refused it. Refusing a
+# mention is the honest behaviour for a searcher and a false positive for a
+# reader, and the repair is to reword the prose rather than to weaken the
+# pattern. Anything that could tell a call from a mention would be a parser, and
+# a parser is a different means with a different argument behind it.
+#
+# EACH PATTERN CATCHES THE SPELLING IT NAMES AND NO OTHER. A rule going quiet
+# because the code moved to a spelling it does not know is the failure mode of
+# every entry below, and nothing here detects it.
 
 set -uo pipefail
 
