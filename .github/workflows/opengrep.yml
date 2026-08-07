@@ -1,4 +1,5 @@
-# Pattern-based static analysis over the tree, with the project's own rules.
+# Pattern-based static analysis over the tree, with the project's own rules and
+# with a pinned revision of the community Python rule set.
 #
 # The code scanning suite finds what its queries know about. A pattern scanner
 # covers a different set cheaply, and more usefully it is where a rule specific
@@ -9,7 +10,9 @@
 # Self-contained on purpose, for the same reason the other gates here are: the
 # scanner is fetched as a release asset pinned to a version and verified against
 # a digest before it runs, so what executes is decided in this file rather than
-# by whoever owns a marketplace action.
+# by whoever owns a marketplace action. The community rules are held to the same
+# standard, pinned to a commit rather than named against a registry, so what this
+# job scans with is decided here too.
 name: Static analysis
 
 on:
@@ -35,6 +38,26 @@ env:
   #     --jq '.assets[] | select(.name=="opengrep_manylinux_x86") | .digest'
   #   sha256:40c21299eeddabf743b856daa843d24f9d4a027130671cd45b3b21776fd9ab26
   OPENGREP_SHA256: 40c21299eeddabf743b856daa843d24f9d4a027130671cd45b3b21776fd9ab26
+  # The community rule set, pinned the same way and for the same reason. A
+  # registry name would resolve to whatever its owner published since the last
+  # run, so two runs a month apart would scan with different rules and the
+  # difference would be invisible in this file.
+  #
+  # Pinned by commit rather than by a digest over a downloaded archive. A commit
+  # id is the content hash of the tree it names, and git verifies it on checkout,
+  # so it is a stronger pin than a digest over a server-generated tarball, whose
+  # bytes are not guaranteed stable for one commit.
+  #
+  #   gh api repos/opengrep/opengrep-rules/commits/main --jq '.sha'
+  #   f1d2b562b414783763fd02a6ed2736eaed622efa
+  #
+  # Licence, read at that commit: semgrep-rules under LGPL 2.1 with the Commons
+  # Clause condition added, licensor Semgrep, Inc. That is why the set is fetched
+  # at gate time and never vendored into this tree: running it is use, and
+  # committing it here would be redistribution under a condition this project has
+  # no reason to take on.
+  OPENGREP_RULES_REPO: https://github.com/opengrep/opengrep-rules.git
+  OPENGREP_RULES_SHA: f1d2b562b414783763fd02a6ed2736eaed622efa
 
 jobs:
   opengrep:
@@ -58,6 +81,32 @@ jobs:
           chmod +x opengrep
           ./opengrep --version
 
+      - name: Fetch the pinned community rule set and verify the revision
+        # Fetched into the runner's temporary directory and never into the
+        # checkout. The community set ships its own fixture files, which are
+        # deliberate vulnerabilities, so a copy inside the working tree would be
+        # scanned by the step below and would red every run.
+        #
+        # A shallow fetch of one commit id rather than a clone of a branch: the
+        # id is what is pinned, git refuses an object that does not hash to it,
+        # and the explicit comparison afterwards fails closed if a future git
+        # ever resolves the ref to something else.
+        run: |
+          set -euo pipefail
+          dir="${RUNNER_TEMP}/opengrep-rules"
+          rm -rf "$dir"
+          mkdir -p "$dir"
+          git -C "$dir" init -q
+          git -C "$dir" remote add origin "$OPENGREP_RULES_REPO"
+          git -C "$dir" fetch -q --depth 1 origin "$OPENGREP_RULES_SHA"
+          git -C "$dir" checkout -q FETCH_HEAD
+          got=$(git -C "$dir" rev-parse HEAD)
+          if [ "$got" != "$OPENGREP_RULES_SHA" ]; then
+            echo "::error::Community rule set is at ${got}, expected ${OPENGREP_RULES_SHA}."
+            exit 1
+          fi
+          echo "Community rules at ${got}"
+
       - name: The project rules fire on their fixtures and stay silent on the neighbours
         # This runs before the scan on purpose. A rule that has stopped matching
         # its own positive fixture would otherwise make the scan below green for
@@ -75,13 +124,26 @@ jobs:
         # and the negative case in each pair rather than merely scanning them.
         #
         # --error is what turns a finding into a failed job; without it the
-        # scanner reports and exits zero. --severity=ERROR is the severity that
-        # fails the build, and every rule under security/rules/ declares it.
+        # scanner reports and exits zero.
+        #
+        # One scan with both rule sets rather than two scans. Two would need the
+        # exclusion above written twice, and the sentence in
+        # security/rules/README.md saying where that exclusion lives is worth
+        # more than the separation.
+        #
+        # Two severities. Every rule under security/rules/ declares ERROR, so the
+        # project half is unchanged. The community set puts most of what is worth
+        # having at WARNING, so a floor of ERROR alone would fetch a pinned rule
+        # set and then ignore nearly all of it, which is the shape of a gate that
+        # looks green because it is not looking. INFO is left out: it is style and
+        # inventory, not a defect class this project would act on.
         run: |
           set -euo pipefail
           ./opengrep scan \
             --config security/rules/ \
+            --config "${RUNNER_TEMP}/opengrep-rules/python" \
             --exclude=security/rules \
             --severity=ERROR \
+            --severity=WARNING \
             --error \
             .
