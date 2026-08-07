@@ -1,0 +1,8 @@
+# A blank issue bypasses every prompt in the templates beside this file, and a
+# prompt nobody sees is not a prompt. Turning blank issues off is the one part
+# of this directory that GitHub refuses a violation of: an issue opened here
+# starts from a template or it does not start.
+#
+# What the templates ask for is still read by a person. Nothing checks that a
+# number in a submitted issue carries the command that produced it.
+blank_issues_enabled: false
