@@ -1,0 +1,24 @@
+# One byte sequence for tracked text, on every platform and in every clone.
+#
+# Without this, what a working tree holds depends on each clone's local
+# `core.autocrlf`, which no tree records and no reviewer can see. A contributor
+# whose checkout carries a carriage return per line sends a one-line edit as a
+# whole-file diff, and the review that mattered is buried under it. The same
+# difference makes a formatter report a clean tree as failing, on a machine
+# where nothing is wrong with the code.
+#
+# `text=auto` leaves the text-or-binary judgement to git. `eol=lf` fixes what a
+# checkout produces, so the answer no longer comes from a setting each clone
+# chose for itself.
+* text=auto eol=lf
+
+# Formats whose bytes are the content. Marking them binary keeps git from
+# rewriting a byte inside a recorded archive response, an image or an archive.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.ico binary
+*.gz binary
+*.zip binary
+*.fits binary
+*.whl binary
