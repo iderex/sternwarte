@@ -1,0 +1,44 @@
+# Invariants that can be decided by searching the tree.
+#
+# Several rules in this project are sentences in documents, and a sentence is an
+# explanation of a rule rather than a rule. Where an invariant can be decided by
+# a search, this is the search that decides it, and the table lives in the script
+# rather than here so that one command gives the same verdict on a runner and on
+# a contributor's machine.
+#
+# Self-contained on purpose, like the other gates here: one checkout and one
+# shell script, no external action, nothing installed and no network. The job
+# therefore stays green for the same reasons on every run and gives no verdict
+# that depends on a third party.
+name: Invariants
+
+on:
+  pull_request:
+    branches: ["**"]
+  push:
+    branches: [main]
+
+# Read-only: the script reads the tracked tree and writes only a scratch file in
+# the runner's temporary directory.
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  invariants:
+    name: Enforce greppable invariants
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # No step pushes, so the token is not persisted into .git/config.
+          persist-credentials: false
+
+      - name: Enforce greppable invariants
+        # Exactly the command CONTRIBUTING.md gives a contributor. One spelling,
+        # so a run here and a run there cannot disagree about what was checked.
+        run: bash scripts/invariants.sh
