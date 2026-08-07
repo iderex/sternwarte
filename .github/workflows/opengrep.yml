@@ -1,0 +1,87 @@
+# Pattern-based static analysis over the tree, with the project's own rules.
+#
+# The code scanning suite finds what its queries know about. A pattern scanner
+# covers a different set cheaply, and more usefully it is where a rule specific
+# to this project can be written: the four rules under security/rules/ are about
+# untrusted input arriving from seven archives, which is this project's dominant
+# class and nothing a general query pack is aimed at.
+#
+# Self-contained on purpose, for the same reason the other gates here are: the
+# scanner is fetched as a release asset pinned to a version and verified against
+# a digest before it runs, so what executes is decided in this file rather than
+# by whoever owns a marketplace action.
+name: Static analysis
+
+on:
+  pull_request:
+    branches: ["**"]
+  push:
+    branches: [main]
+
+# Read-only: the scanner reads the checkout and writes nothing back.
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Pinned. Moving it is a change to this file with the new digest beside it.
+  OPENGREP_VERSION: v1.26.0
+  # sha256 of opengrep_manylinux_x86 at that tag, as GitHub reports it:
+  #
+  #   gh api repos/opengrep/opengrep/releases/tags/v1.26.0 \
+  #     --jq '.assets[] | select(.name=="opengrep_manylinux_x86") | .digest'
+  #   sha256:40c21299eeddabf743b856daa843d24f9d4a027130671cd45b3b21776fd9ab26
+  OPENGREP_SHA256: 40c21299eeddabf743b856daa843d24f9d4a027130671cd45b3b21776fd9ab26
+
+jobs:
+  opengrep:
+    name: Static analysis (opengrep)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # No step pushes, so the token is not persisted into .git/config.
+          persist-credentials: false
+
+      - name: Fetch the pinned scanner and verify it
+        run: |
+          set -euo pipefail
+          url="https://github.com/opengrep/opengrep/releases/download/${OPENGREP_VERSION}/opengrep_manylinux_x86"
+          curl -sSfL --retry 3 -o opengrep "$url"
+          # sha256sum -c fails closed: a mismatch, a short download and a moved
+          # asset all end here rather than in a scan by an unknown binary.
+          echo "${OPENGREP_SHA256}  opengrep" | sha256sum -c -
+          chmod +x opengrep
+          ./opengrep --version
+
+      - name: The project rules fire on their fixtures and stay silent on the neighbours
+        # This runs before the scan on purpose. A rule that has stopped matching
+        # its own positive fixture would otherwise make the scan below green for
+        # the wrong reason, and a green scan is indistinguishable from a rule
+        # that no longer refuses anything.
+        run: |
+          set -euo pipefail
+          ./opengrep test security/rules/
+
+      - name: Scan the tree
+        # security/rules/ is excluded here and only here. The fixtures in it are
+        # deliberate violations, so a scan that included them would be red on
+        # every run and the gate would mean nothing. What proves those files are
+        # still doing their job is the step above, which asserts the positive
+        # and the negative case in each pair rather than merely scanning them.
+        #
+        # --error is what turns a finding into a failed job; without it the
+        # scanner reports and exits zero. --severity=ERROR is the severity that
+        # fails the build, and every rule under security/rules/ declares it.
+        run: |
+          set -euo pipefail
+          ./opengrep scan \
+            --config security/rules/ \
+            --exclude=security/rules \
+            --severity=ERROR \
+            --error \
+            .

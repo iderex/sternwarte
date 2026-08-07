@@ -1,0 +1,35 @@
+rules:
+  - id: path-from-archive-response-not-resolved
+    languages: [python]
+    severity: ERROR
+    message: >-
+      A filesystem path here is built from a value that came out of an archive
+      response and is opened without being resolved against a base directory. An
+      archive is a service this project does not control, and a field carrying
+      a parent-directory segment or an absolute path turns a cache write into a
+      write anywhere the process can reach. Resolve the joined path against the
+      base and refuse it if it escapes, which is what resolve_under is for.
+    metadata:
+      category: security
+      subcategory: [audit]
+      confidence: MEDIUM
+      likelihood: MEDIUM
+      impact: HIGH
+      references:
+        - https://cwe.mitre.org/data/definitions/22.html
+    mode: taint
+    pattern-sources:
+      - patterns:
+          - pattern-either:
+              - pattern: $OBJ[$K]
+              - pattern: $OBJ.get(...)
+          - metavariable-regex:
+              metavariable: $OBJ
+              regex: (?i).*(response|record|row|payload|entry).*
+    pattern-sanitizers:
+      - pattern: resolve_under(...)
+    pattern-sinks:
+      - pattern-either:
+          - pattern: open($SINK, ...)
+          - pattern: pathlib.Path($SINK)
+          - pattern: Path($SINK)

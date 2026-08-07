@@ -1,0 +1,29 @@
+rules:
+  - id: archive-query-built-by-concatenation
+    languages: [python]
+    severity: ERROR
+    message: >-
+      This archive query is assembled by string building rather than by handing
+      the parameters to the client. A value interpolated into a query string is
+      a value that can end the parameter it was meant to be and start another
+      one, and every value here arrives from a resolver or from an operator's
+      configuration. Pass the parameters as data instead, which for a URL is the
+      params argument and for a table query is a bound parameter.
+    metadata:
+      category: security
+      subcategory: [audit]
+      confidence: MEDIUM
+      likelihood: MEDIUM
+      impact: MEDIUM
+      references:
+        - https://cwe.mitre.org/data/definitions/88.html
+    patterns:
+      - pattern-either:
+          - pattern: requests.$METHOD("...".format(...), ...)
+          - pattern: requests.$METHOD(f"...", ...)
+          - pattern: requests.$METHOD("..." + $X, ...)
+          - pattern: requests.$METHOD("..." % $X, ...)
+          - pattern: $CLIENT.query("...".format(...), ...)
+          - pattern: $CLIENT.query(f"...", ...)
+          - pattern: $CLIENT.query("..." + $X, ...)
+          - pattern: $CLIENT.query("..." % $X, ...)
