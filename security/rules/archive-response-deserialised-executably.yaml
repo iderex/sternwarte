@@ -1,0 +1,36 @@
+rules:
+  - id: archive-response-deserialised-executably
+    languages: [python]
+    severity: ERROR
+    message: >-
+      This deserialiser can execute code contained in the bytes it is given.
+      Every response this project parses arrives from a service it does not
+      control, and the cache replays those bytes on every later run, so one
+      hostile or corrupted response becomes code execution now and again on
+      every re-reduction. Use a format whose reader cannot construct arbitrary
+      objects: json.loads, yaml.safe_load, or the archive format's own parser.
+    metadata:
+      category: security
+      subcategory: [audit]
+      confidence: HIGH
+      likelihood: MEDIUM
+      impact: HIGH
+      references:
+        - https://cwe.mitre.org/data/definitions/502.html
+    patterns:
+      - pattern-either:
+          - pattern: pickle.load(...)
+          - pattern: pickle.loads(...)
+          - pattern: cPickle.load(...)
+          - pattern: cPickle.loads(...)
+          - pattern: dill.load(...)
+          - pattern: dill.loads(...)
+          - pattern: marshal.load(...)
+          - pattern: marshal.loads(...)
+          - pattern: shelve.open(...)
+          - patterns:
+              - pattern: yaml.load(...)
+              - pattern-not: yaml.load(..., Loader=yaml.SafeLoader)
+              - pattern-not: yaml.load(..., Loader=yaml.CSafeLoader)
+          - pattern: eval(...)
+          - pattern: exec(...)
