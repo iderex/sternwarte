@@ -1,13 +1,14 @@
-"""Near-miss fixture for no-bare-except-and-no-assert-in-library-code.
+"""Neighbour for no-bare-except-and-no-assert-in-library-code.
 
-Trips: a bare except, and an assert that vanishes under python -O.
-Does not trip: a named exception class, and a raise.
+A named exception class rather than a bare except, and a raise rather than an
+assert. Both survive python -O and both say what went wrong.
 """
 
 
 def offsets(rows):
-    assert rows
+    if not rows:
+        raise ValueError("no rows")
     try:
         return sum(rows)
-    except:
+    except TypeError:
         return None

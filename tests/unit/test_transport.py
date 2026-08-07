@@ -1,11 +1,11 @@
-"""Near-miss fixture for the default-suite entry.
+"""Neighbour for the default-suite entry.
 
-Trips: socketserver, which is the module that binds and listens.
-Does not trip: socket, one word away, which is the client side.
+One word from the tripping fixture: the client module rather than the server
+one. The client side binds nothing and listens on nothing.
 """
 
-import socketserver
+import socket
 
 
 def test_module_is_importable():
-    assert socketserver is not None
+    assert socket is not None

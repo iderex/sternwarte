@@ -1,9 +1,10 @@
-"""Near-miss fixture for no-magnitude-compared-to-a-float-literal-for-equality.
+"""Neighbour for no-magnitude-compared-to-a-float-literal-for-equality.
 
-Trips: equality against a float literal.
-Does not trip: math.isclose, one call away.
+math.isclose rather than ==. One call away from the tripping fixture.
 """
+
+import math
 
 
 def is_unset(mag):
-    return mag == 0.0
+    return math.isclose(mag, 0.0, abs_tol=1e-9)

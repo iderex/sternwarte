@@ -1,9 +1,13 @@
-"""Near-miss fixture for no-standard-output-from-the-library.
+"""Neighbour for no-standard-output-from-the-library.
 
-Trips: print, which writes to standard output from library code.
-Does not trip: a logger call, which a caller can route or silence.
+A logger call rather than print. The caller decides where it goes and can
+silence it, which is the difference the entry is about.
 """
+
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def emit(summary):
-    print(summary)
+    logger.info("%s", summary)
