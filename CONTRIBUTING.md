@@ -115,8 +115,10 @@ gate actually is at this commit, derived from the workflow files rather than
 remembered:
 
     grep -l . .github/workflows/*.yml
+    .github/workflows/codeql.yml
     .github/workflows/dco.yml
     .github/workflows/dependency-review.yml
+    .github/workflows/invariants.yml
     .github/workflows/opengrep.yml
     .github/workflows/pr-hygiene.yml
     .github/workflows/scorecard.yml
@@ -168,23 +170,72 @@ gate fails closed on it rather than reading a broken scanner as a clean tree.
 
 ### `Static analysis (opengrep)`
 
-Runs this project's own pattern rules from `security/rules/`. Two steps: the
-rules are asserted against their own fixtures first, then the tree is scanned
-with `security/rules/` excluded, because the fixtures in it are deliberate
-violations. Fetch the pinned scanner the way the workflow does, on Linux or on
-macOS with the matching asset name:
+Runs two rule sets in one scan: this project's own pattern rules from
+`security/rules/`, and a revision of the community Python rules pinned by commit
+rather than named against a registry. The project rules are asserted against
+their own fixtures first, because a rule that has stopped matching its own
+positive fixture would otherwise make the scan green for the wrong reason. Then
+the tree is scanned with `security/rules/` excluded, because the fixtures in it
+are deliberate violations.
+
+Fetch the pinned scanner the way the workflow does, on Linux or on macOS with
+the matching asset name:
 
     url="https://github.com/opengrep/opengrep/releases/download/v1.26.0/opengrep_manylinux_x86"
     curl -sSfL --retry 3 -o opengrep "$url"
     echo "40c21299eeddabf743b856daa843d24f9d4a027130671cd45b3b21776fd9ab26  opengrep" | sha256sum -c -
     chmod +x opengrep
+
+Fetch the community set the same way, at the commit `.github/workflows/opengrep.yml`
+pins, and into a directory outside this one. It ships its own fixture files,
+which are deliberate vulnerabilities, so a copy inside the checkout would be
+scanned by the step below and would red every run. The job uses the runner's
+temporary directory for this; locally, use one of your own:
+
+    dir="$(mktemp -d)/opengrep-rules"
+    git init -q "$dir"
+    git -C "$dir" remote add origin https://github.com/opengrep/opengrep-rules.git
+    git -C "$dir" fetch -q --depth 1 origin f1d2b562b414783763fd02a6ed2736eaed622efa
+    git -C "$dir" checkout -q FETCH_HEAD
+
+Then the two steps the job runs, in its order:
+
     ./opengrep test security/rules/
-    ./opengrep scan --config security/rules/ --exclude=security/rules --severity=ERROR --error .
+    ./opengrep scan --config security/rules/ --config "$dir/python" --exclude=security/rules --severity=ERROR --severity=WARNING --error .
+
+Two severity floors rather than one. Every rule under `security/rules/` declares
+ERROR, so the project half is unchanged by the second floor. The community set
+puts most of what is worth having at WARNING, so a floor of ERROR alone would
+fetch a pinned rule set and then ignore nearly all of it, which is the shape of a
+gate that looks green because it is not looking.
 
 The pinned asset is a Linux binary. **There is no local route named here for
 Windows**, and a contributor on Windows runs this check by pushing the branch and
 reading the check run. That is a gap rather than a policy, and it is written here
 so it is not discovered as a silent skip.
+
+### `Analyze (python)` and `Analyze (actions)`
+
+Code scanning over the two languages this tree holds, one check run per language,
+both from `.github/workflows/codeql.yml`. The Python analysis reads the Python in
+the tree, which today is the fixtures under `security/rules/` and will be the
+library once it exists. The Actions analysis reads the workflow files, which are
+the part of this tree that already holds privilege and which no source scanner
+would otherwise look at. Both run the extended security suite rather than the
+default one, and the reason is in the header of that file.
+
+Both run alongside the pattern scanner above rather than instead of it. These are
+dataflow queries and answer whether a value reaches a sink; the rules under
+`security/rules/` answer whether a call is spelled dangerously. `security/rules/`
+is therefore not excluded here, which is a deliberate departure from what the
+pattern scanner does with the same directory, and what this suite currently
+reports on those files is recorded in the same header with the analysis ids
+behind it.
+
+**There is no local route named here.** The analysis builds its database on the
+runner and a contributor sees the result as the two check runs on the pull
+request. That is a gap rather than a policy, and it is written here for the same
+reason the Windows gap above is, so that it is not discovered as a silent skip.
 
 ### `Audit workflows (zizmor)`
 
