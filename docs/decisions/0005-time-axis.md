@@ -89,6 +89,14 @@ repository holds none yet. The recorded archive responses and their manifests ar
 what will settle them, one survey at a time, and an adapter lands with its row of
 this table corrected against the recording rather than against this file.
 
+No row below names the native column. For the five rows written as claims that
+absence is the same one the rest of the row carries. For the two written as
+established it is a further absence, because what the mission documentation
+establishes there is the frame, the scale and the offset rather than a column
+name, and a column name written from memory would be the defect this section
+already refuses. Every row therefore supplies at most three of the four fields,
+and the fourth arrives with the survey's recorded response.
+
 - The space astrometry mission. Established. Its epoch photometry publishes time
   as a barycentric Julian date on the barycentric coordinate time scale, offset by
   the fixed constant 2455197.5 days. The conversion is therefore an offset
