@@ -72,10 +72,14 @@ on trust is how the second answer gets published.
 
 ## What is recorded per survey
 
-For every survey the artefact carries the native column name as the archive
-publishes it, the reference frame and scale the archive states for that column,
-and the conversion this tool applied. Three fields, per survey, in the provenance
-header described in `0007-output-artefact.md`.
+For every survey the artefact carries four fields, in the provenance header
+described in `0007-output-artefact.md`, which is where they are named:
+`native_time_column`, the column name as the archive publishes it;
+`native_time_frame` and `native_time_scale`, the reference frame and the scale
+the archive states for that column; and `time_conversion`, the conversion this
+tool applied. Four rather than three, because the frame and the scale are two
+keys of that header and not one, and the count here is taken from the header
+rather than from a reading of the sentence above it.
 
 What follows is the table as it stands before any adapter exists. Two entries are
 established by the mission's own published documentation and are written as
@@ -84,6 +88,14 @@ what an archive actually sends is a response from that archive, and this
 repository holds none yet. The recorded archive responses and their manifests are
 what will settle them, one survey at a time, and an adapter lands with its row of
 this table corrected against the recording rather than against this file.
+
+No row below names the native column. For the five rows written as claims that
+absence is the same one the rest of the row carries. For the two written as
+established it is a further absence, because what the mission documentation
+establishes there is the frame, the scale and the offset rather than a column
+name, and a column name written from memory would be the defect this section
+already refuses. Every row therefore supplies at most three of the four fields,
+and the fourth arrives with the survey's recorded response.
 
 - The space astrometry mission. Established. Its epoch photometry publishes time
   as a barycentric Julian date on the barycentric coordinate time scale, offset by
