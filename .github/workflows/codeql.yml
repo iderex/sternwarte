@@ -22,10 +22,13 @@
 # rather than pass quietly.
 #
 # What those fixtures produce from this suite is nothing, and that is measured
-# rather than assumed. On the pull request that added this file:
+# rather than assumed. Each analysis is quoted by its own id, so the two lines
+# below stay reproducible after further runs have pushed them down the list:
 #
-#   gh api "repos/iderex/sternwarte/code-scanning/analyses?ref=refs/pull/80/merge" \
-#     --jq '.[] | "\(.tool.name) \(.category) results=\(.results_count)"'
+#   for id in 1589076683 1589076740; do
+#     gh api "repos/iderex/sternwarte/code-scanning/analyses/$id" \
+#       --jq '"\(.tool.name) \(.category) results=\(.results_count)"'
+#   done
 #   CodeQL /language:python results=0
 #   CodeQL /language:actions results=0
 #
