@@ -197,6 +197,20 @@ on any finding of low severity or above:
 distribution's build script. `--strict-collection` fails closed if any workflow
 fails to parse.
 
+### `Enforce greppable invariants`
+
+Walks a table of invariants that can be decided by searching the tree, and
+prints a verdict for every entry rather than only for the ones that failed. Run
+it with the command the workflow uses, which is the only spelling there is:
+
+    bash scripts/invariants.sh
+
+It exits 1 when an invariant is violated and 2 when the search tool itself
+failed, because a broken scanner is not a clean tree. An entry whose scope holds
+no tracked file is reported as `no subjects` and never as `pass`: it refused
+nothing, and the summary counts those separately so a green run over an absent
+subject cannot be read as a clean one.
+
 ### `dependency-review`
 
 Runs on a pull request only, and compares the dependency diff of that pull
