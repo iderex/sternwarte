@@ -19,12 +19,30 @@
 # deliberate violations that exist so the project's own rules can be proven to
 # fire. They are also, today, the only Python in the tree, so excluding them
 # would leave the Python analysis with nothing to look at and the job would fail
-# rather than pass quietly. The findings they produce are triaged as dismissals
-# with a written reason, which is a record a later reader can see and argue with.
-# A path exclusion would be silent, and a fixture added later would be silently
-# unscanned instead of visibly untriaged. The cost is real and is stated rather
-# than hidden: a new fixture reddens this gate until somebody dismisses its
-# findings, and that friction is the price of the exclusion not existing.
+# rather than pass quietly.
+#
+# What those fixtures produce from this suite is nothing, and that is measured
+# rather than assumed. On the pull request that added this file:
+#
+#   gh api "repos/iderex/sternwarte/code-scanning/analyses?ref=refs/pull/80/merge" \
+#     --jq '.[] | "\(.tool.name) \(.category) results=\(.results_count)"'
+#   CodeQL /language:python results=0
+#   CodeQL /language:actions results=0
+#
+# Four files calling pickle.load, marshal.loads, yaml.load without a loader and
+# eval on their argument, and the extended security suite reports none of them.
+# That is the queries doing what they are built to do rather than a fault: they
+# are dataflow queries and want a path from an untrusted source to the sink, and
+# a fixture whose only input is a function parameter offers no source. It is
+# written down here because it is the clearest available statement of what this
+# gate is for. It answers whether a value reaches a sink. It does not answer
+# whether a call is spelled dangerously, which is the question the rules under
+# security/rules/ ask, and it is why both gates run rather than one.
+#
+# So nothing is dismissed today and nothing is hidden. Whatever arrives later is
+# triaged in the open, either fixed or dismissed with a written reason a reader
+# can see and argue with. A path exclusion would be silent instead, and a fixture
+# added later would be silently unscanned rather than visibly untriaged.
 name: CodeQL
 
 on:
