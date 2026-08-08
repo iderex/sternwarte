@@ -72,10 +72,14 @@ on trust is how the second answer gets published.
 
 ## What is recorded per survey
 
-For every survey the artefact carries the native column name as the archive
-publishes it, the reference frame and scale the archive states for that column,
-and the conversion this tool applied. Three fields, per survey, in the provenance
-header described in `0007-output-artefact.md`.
+For every survey the artefact carries four fields, in the provenance header
+described in `0007-output-artefact.md`, which is where they are named:
+`native_time_column`, the column name as the archive publishes it;
+`native_time_frame` and `native_time_scale`, the reference frame and the scale
+the archive states for that column; and `time_conversion`, the conversion this
+tool applied. Four rather than three, because the frame and the scale are two
+keys of that header and not one, and the count here is taken from the header
+rather than from a reading of the sentence above it.
 
 What follows is the table as it stands before any adapter exists. Two entries are
 established by the mission's own published documentation and are written as
