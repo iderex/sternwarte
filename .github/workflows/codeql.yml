@@ -1,0 +1,123 @@
+# Code scanning over the two languages this tree actually holds.
+#
+# The workflow files are audited by the zizmor gate and the source is audited by
+# nothing. The classes this project has to worry about are all in the same
+# direction: a value that arrived from a survey archive reaching a path, an
+# archive response reaching a deserialiser, and a query parameter built by
+# concatenation. Those are dataflow questions, and a pattern scanner answers them
+# only where the source and the sink sit close enough together to be seen in one
+# window. That is why this runs alongside the opengrep gate rather than instead
+# of it: the two find different things, and the project's own rules under
+# security/rules/ are aimed at shapes no general query pack knows about.
+#
+# The extended query set is used rather than the default one. The default set is
+# tuned to keep noise low on an average repository; this tree parses untrusted
+# input from seven services, so the trade is worth taking in the other direction.
+#
+# security/rules/ is NOT excluded here, and that is a deliberate departure from
+# what opengrep.yml does with the same directory. The files in it are fixtures:
+# deliberate violations that exist so the project's own rules can be proven to
+# fire. They are also, today, the only Python in the tree, so excluding them
+# would leave the Python analysis with nothing to look at and the job would fail
+# rather than pass quietly.
+#
+# What those fixtures produce from this suite is nothing, and that is measured
+# rather than assumed. Each analysis is quoted by its own id, so the two lines
+# below stay reproducible after further runs have pushed them down the list:
+#
+#   for id in 1589076683 1589076740; do
+#     gh api "repos/iderex/sternwarte/code-scanning/analyses/$id" \
+#       --jq '"\(.tool.name) \(.category) results=\(.results_count)"'
+#   done
+#   CodeQL /language:python results=0
+#   CodeQL /language:actions results=0
+#
+# Four files calling pickle.load, marshal.loads, yaml.load without a loader and
+# eval on their argument, and the extended security suite reports none of them.
+# That is the queries doing what they are built to do rather than a fault: they
+# are dataflow queries and want a path from an untrusted source to the sink, and
+# a fixture whose only input is a function parameter offers no source. It is
+# written down here because it is the clearest available statement of what this
+# gate is for. It answers whether a value reaches a sink. It does not answer
+# whether a call is spelled dangerously, which is the question the rules under
+# security/rules/ ask, and it is why both gates run rather than one.
+#
+# So nothing is dismissed today and nothing is hidden. Whatever arrives later is
+# triaged in the open, either fixed or dismissed with a written reason a reader
+# can see and argue with. A path exclusion would be silent instead, and a fixture
+# added later would be silently unscanned rather than visibly untriaged.
+name: CodeQL
+
+on:
+  pull_request:
+    branches: ["**"]
+  push:
+    branches: [main]
+
+# Read-only at the top level. The single write scope is granted on the job that
+# uploads, and it is the only one that job has.
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  analyze:
+    # The check run name is this string with the matrix value substituted, and
+    # the required-context names in issue #32 are those exact strings. Renaming
+    # this job silently detaches it from the requirement, so it is not renamed.
+    name: Analyze (${{ matrix.language }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      # Uploading the results is what creates the alerts in the code scanning
+      # view, and it is the only write this workflow performs.
+      security-events: write
+      # Read-only, and required by the action to look up the workflow run it is
+      # part of.
+      actions: read
+    strategy:
+      # One language failing must not cancel the other. A red Python analysis
+      # that also removed the Actions result would report one problem as two
+      # absences.
+      fail-fast: false
+      matrix:
+        # Derived from what the tree holds rather than from a guess:
+        #
+        #   gh api repos/iderex/sternwarte/languages
+        #   {"Shell":10614,"Python":6904}
+        #
+        # Shell is the invariants script, which the code scanning suite has no
+        # analyser for. Actions is not in that output because it counts bytes by
+        # file extension and workflow files are YAML; it is analysed here because
+        # the workflow files are the part of this tree that already holds
+        # privilege.
+        language: [python, actions]
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # No step pushes, so the token is not persisted into .git/config.
+          persist-credentials: false
+
+      - name: Initialise the database
+        uses: github/codeql-action/init@e4fba868fa4b1b91e1fdab776edc8cfbe6e9fb81 # v4.37.3
+        with:
+          languages: ${{ matrix.language }}
+          # Neither language is compiled, so there is no build to trace and
+          # nothing to run from the checkout during database creation.
+          build-mode: none
+          # Named here rather than left at the default, so what this gate scans
+          # with is decided in this file. It resolves per language to that
+          # language's extended security suite.
+          queries: security-extended
+
+      - name: Analyse
+        uses: github/codeql-action/analyze@e4fba868fa4b1b91e1fdab776edc8cfbe6e9fb81 # v4.37.3
+        with:
+          # The category keeps the two languages' results separate in the code
+          # scanning view. Without it the second upload replaces the first.
+          category: "/language:${{ matrix.language }}"
