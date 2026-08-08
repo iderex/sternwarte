@@ -143,6 +143,68 @@ not a thing the merge asked for.
   arriving from seven archives is the dominant class here, and a scan whose
   result nobody has to look at before merging is not a gate.
 
+## The mutation gate, which that board runs without requiring it
+
+The thirteen contexts above are what that board's ruleset requires. It runs more
+than it requires, and one of those has a counterpart here, so it is recorded
+rather than left out of a document about parity. This section covers that one
+check. It is not a survey of everything that board runs outside its required
+list.
+
+`.github/workflows/stryker-mutation.yml` there mutates the security-critical
+validators and reports which mutants survived. It is not one of the thirteen:
+
+    gh api repos/iderex/jellyfin-plugin-sso/rulesets/18802863 \
+      --jq '.rules[] | select(.type == "required_status_checks") | .parameters.required_status_checks[].context' \
+      | grep -ci mutation
+    0
+
+and it declares no pull request trigger, so it cannot become required by
+accident:
+
+    gh api repos/iderex/jellyfin-plugin-sso/contents/.github/workflows/stryker-mutation.yml \
+      --jq '.content' | base64 -d | sed -n '/^on:/,/^permissions:/p' | grep -vE '^\s*#|^$'
+    on:
+      schedule:
+        - cron: "41 5 * * 1"
+      workflow_dispatch:
+    permissions:
+
+A weekly cron and a manual dispatch, and nothing else.
+
+The counterpart here is `.github/workflows/mutation.yml`, which #35 owns, over
+the transformation code and the ensemble solve. It runs on a schedule for the
+same reason. A mutation run re-executes the covered tests once per mutant, which
+over numerical code is slow enough that gating it would put every pull request
+behind it, and what it produces is a missing assertion rather than a broken
+build. So a survivor opens an issue naming the mutant and the module, and the
+change that happened to be in flight is not reddened by a gap it did not create.
+
+One deviation is worth stating here rather than leaving it to be found later. The
+run on that board reports its score and never fails on it, because its break
+threshold is zero:
+
+    gh api repos/iderex/jellyfin-plugin-sso/contents/SSO-Auth.Tests.Stryker/stryker-config.json \
+      --jq '.content' | base64 -d | grep -nE 'thresholds|break'
+    8:    "thresholds": {
+    11:      "break": 0
+
+#35 asks for a floor instead, measured on the day it lands and carried with the
+command that produced it. A floor on a scheduled run still gates no merge, so
+what the difference changes is what a red run means. There it means the tooling
+broke. Here it would mean that or a suite which has stopped noticing a planted
+fault, and the second reading is the one the floor exists to make available.
+
+None of it exists here yet:
+
+    git ls-tree --name-only origin/main -- .github/workflows/mutation.yml src/ ; echo "exit=$?"
+    exit=0
+
+An exit of 0 with no output is a listing that matched none of the paths given.
+There is no mutation workflow in this repository, so nothing produces a check run
+for one, and the two modules #35 names are not written either. This section
+records a counterpart that is owed, not one that is running.
+
 ## Deferred, each with the reason and where it is owed
 
 - The release channel checks. They gate a distribution channel that does not
