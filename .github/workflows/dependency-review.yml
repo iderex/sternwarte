@@ -13,10 +13,12 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # No `name:` on this job: the "Protect main" ruleset's required status check
-  # matches the literal check-run name, which defaults to the job id
-  # ("dependency-review") when no `name:` is set. Overriding it here would
-  # rename the check run and silently break the required-status-check gate.
+  # No `name:` on this job: a required status check matches the literal
+  # check-run name, which defaults to the job id ("dependency-review") when no
+  # `name:` is set. The `gate` ruleset on `main` requires no status check today,
+  # so nothing matches this name yet, and #32 is where that absence is held.
+  # Setting `name:` here would rename the check run, and a requirement added
+  # later under the old name would wait for a run that never starts.
   dependency-review:
     runs-on: ubuntu-latest
     timeout-minutes: 10
