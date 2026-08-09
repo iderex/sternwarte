@@ -367,6 +367,20 @@ refuse \
     '^\s*except\s*:|^\s*assert\s' \
     'src/sternwarte'
 
+# The type checker is a gate that has not been built, and this entry is not it.
+# It decides one property that a type checker cannot decide at all: whether a
+# silenced error carries the code it silenced and the reason it was silenced.
+# `mypy` reads the annotation and obeys the comment; it never asks whether the
+# comment says anything. Two spellings are refused. An ignore with no code
+# silences every error on that line, including the one nobody has made yet, and
+# an ignore whose code is present with no reason beside it leaves the argument
+# for it in the head of whoever wrote it.
+refuse \
+    'no-type-ignore-without-an-error-code-and-a-reason' \
+    'a blanket silencer that hides the next error on its line as well as the one it was written for, and a silenced error whose reason nobody wrote down' \
+    '#\s*type:\s*ignore\b(?!\[)|#\s*type:\s*ignore\[[^\]]*\](?!\s*#\s*\S)' \
+    'src/sternwarte'
+
 refuse \
     'no-magnitude-compared-to-a-float-literal-for-equality' \
     'an equality test on a floating point quantity, which is false for two values that differ in the last bit and true for nothing a measurement produces' \
