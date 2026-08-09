@@ -81,6 +81,17 @@ reading it from the environment where it is needed, and the verbosity is
 visible at every call site while the benefit is not visible anywhere.
 
 The four prohibitions are stated here and nothing refuses a violation of them
-today. There is no check in this repository that fails a module which reads the
-environment or installs a logging handler, so until the tests that own those
-properties exist, this entry is read by a person and enforced by nothing.
+today. Two of them now have an entry in the greppable-invariants table, landed
+by #30, and both entries have searched nothing:
+
+    bash scripts/invariants.sh | grep -E -A2 'no-environment-read-outside-the-command-line|no-standard-output-from-the-library' | grep -E '^\[|^ +scope:'
+    [ no subjects ] no-environment-read-outside-the-command-line
+                    scope:    src/sternwarte :(exclude)src/sternwarte/cli :(exclude)src/sternwarte/cli.py (0 tracked files)
+    [ no subjects ] no-standard-output-from-the-library
+                    scope:    src/sternwarte :(exclude)src/sternwarte/cli :(exclude)src/sternwarte/cli.py (0 tracked files)
+
+`no subjects` is the script's own word for a scope holding no tracked file, and
+it is reported separately from a pass for that reason. Argument parsing, the
+process exit and the logging handler have no entry at all. So a reader who greps
+for a mechanism finds two names and no evidence, and this entry is still read by
+a person and enforced by nothing.
