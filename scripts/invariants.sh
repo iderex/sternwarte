@@ -178,6 +178,118 @@ pairs() {
     fi
 }
 
+# crossref <id> <prevents> <document> <authority>
+#
+# Every artefact key named in backticks on a line of <document> beginning
+# `Signature: ` also appears, in backticks, somewhere in <authority>.
+#
+# Three bounds, and they belong here rather than only in the document, because a
+# reader who trusts this entry is trusting these.
+#
+# IT READS THE `Signature: ` LINE AND NOTHING ELSE. A key named in the prose of an
+# entry is not checked. That is why a line ending in a comma is refused: a list
+# wrapped onto a second line puts half its keys where nothing looks, and the
+# wrapped half is exactly the half a writer stops thinking about.
+#
+# IT DECIDES THAT A NAME EXISTS AND NEVER WHAT IT MEANS. A key spelled correctly
+# and pointing at the wrong quantity passes, and the review is where that is
+# caught.
+#
+# THE AUTHORITY IS A DOCUMENT BECAUSE THE ARTEFACT IS NOT CODE YET. Once the
+# writer exists, the authority is the writer, and an entry still reading a
+# decision record would agree with what was decided while disagreeing with what
+# the tool emits.
+crossref() {
+    local id="$1" prevents="$2" document="$3" authority="$4"
+
+    local subjects line
+    git ls-files -- "$document" "$authority" > "$scratch" 2>&1 < /dev/null
+    subjects=0
+    while IFS= read -r line; do
+        subjects=$((subjects + 1))
+    done < "$scratch"
+
+    printf '%s\n' "--------------------------------------------------------------"
+    if [ "$subjects" -ne 2 ]; then
+        empty=$((empty + 1))
+        printf '[ no subjects ] %s\n' "$id"
+        printf '                prevents: %s\n' "$prevents"
+        printf '                scope:    %s %s (%s of 2 tracked)\n' \
+            "$document" "$authority" "$subjects"
+        printf '                rule:     every `key` on a Signature: line of the first\n'
+        printf '                          file is named in the second\n'
+        printf '                NOTHING WAS SEARCHED. This entry refused nothing.\n'
+        return
+    fi
+
+    checked=$((checked + 1))
+
+    local authority_text="" rest token missing="" wrapped="" names=0
+    while IFS= read -r line; do
+        authority_text="${authority_text}${line}"$'\n'
+    done < "$authority"
+
+    while IFS= read -r line; do
+        case "$line" in
+            'Signature: '*) ;;
+            *) continue ;;
+        esac
+        case "$line" in
+            *,) wrapped="${wrapped}${line}"$'\n' ;;
+        esac
+        rest="${line#Signature: }"
+        while :; do
+            case "$rest" in
+                *'`'*) ;;
+                *) break ;;
+            esac
+            rest="${rest#*\`}"
+            case "$rest" in
+                *'`'*) ;;
+                *) break ;;
+            esac
+            token="${rest%%\`*}"
+            rest="${rest#*\`}"
+            [ -n "$token" ] || continue
+            names=$((names + 1))
+            case "$authority_text" in
+                *'`'"$token"'`'*) ;;
+                *) missing="${missing}${token}"$'\n' ;;
+            esac
+        done
+    done < "$document"
+
+    if [ -z "$missing" ] && [ -z "$wrapped" ]; then
+        printf '[ pass        ] %s\n' "$id"
+        printf '                prevents: %s\n' "$prevents"
+        printf '                scope:    %s %s (2 tracked files)\n' "$document" "$authority"
+        printf '                rule:     every `key` on a Signature: line of the first\n'
+        printf '                          file is named in the second (%s checked)\n' "$names"
+        return
+    fi
+
+    failed=$((failed + 1))
+    printf '[ FAIL        ] %s\n' "$id"
+    printf '                prevents: %s\n' "$prevents"
+    printf '                scope:    %s %s (2 tracked files)\n' "$document" "$authority"
+    printf '                rule:     every `key` on a Signature: line of the first\n'
+    printf '                          file is named in the second (%s checked)\n' "$names"
+    if [ -n "$missing" ]; then
+        printf '%s' "$missing" > "$scratch"
+        while IFS= read -r token; do
+            printf '                  %s is named in %s and not in %s\n' \
+                "$token" "$document" "$authority"
+        done < "$scratch"
+    fi
+    if [ -n "$wrapped" ]; then
+        printf '%s' "$wrapped" > "$scratch"
+        while IFS= read -r line; do
+            printf '                  line ends in a comma, so its list continues where\n'
+            printf '                  nothing reads it: %s\n' "$line"
+        done < "$scratch"
+    fi
+}
+
 printf 'Greppable invariants\n'
 printf 'Tree at %s\n' "$(git rev-parse HEAD)"
 
@@ -228,6 +340,12 @@ pairs \
     'a recording whose survey, release, query and record date are unknown, which is a recording nobody can tell is stale' \
     'tests/responses' \
     '.manifest.json'
+
+crossref \
+    'failure-mode-signature-names-a-real-artefact-field' \
+    'a catalogue entry sending a reader to an artefact field that does not exist, which reads as a detection route and is a dead end' \
+    'docs/failure-modes.md' \
+    'docs/decisions/0007-output-artefact.md'
 
 printf '%s\n' "--------------------------------------------------------------"
 printf 'Summary: %s checked, %s with no subjects, %s failed, %s scanner errors\n' \
