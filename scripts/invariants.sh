@@ -123,10 +123,26 @@ refuse() {
 
 # pairs <id> <prevents> <scope-dir> <manifest-suffix>
 #
+# A recording and its manifest exist as a pair, and the entry reads both ways.
 # Every file in the scope that is not itself a manifest has a manifest beside it,
-# named by appending the suffix to the whole file name. Appending rather than
-# replacing the extension, so a recording and its manifest sort together and a
-# recording with two extensions cannot collide with another recording's manifest.
+# named by appending the suffix to the whole file name, and every manifest has
+# the file it is named after. Appending rather than replacing the extension, so a
+# recording and its manifest sort together and a recording with two extensions
+# cannot collide with another recording's manifest.
+#
+# THE SECOND DIRECTION IS WHAT NAMES THE MISTAKE. Replacing the extension instead
+# of appending it is the one-character version of getting this wrong, and it
+# breaks both directions at once: the recording has no manifest beside it, and
+# the manifest that was written points at a name nothing produced. Reading only
+# the first direction reports that a recording is undocumented and never says
+# that the documentation is sitting one filename away.
+#
+# IT READS THE INDEX FOR THE SUBJECT AND THE WORKING TREE FOR THE PARTNER.
+# `git ls-files` supplies the files this entry judges, and the partner is looked
+# for with a test on the filesystem, so a partner present in the checkout and
+# never added satisfies this entry here and is absent for every other reader.
+# That bound is older than the second direction and the second direction inherits
+# it rather than adding it.
 pairs() {
     local id="$1" prevents="$2" scope="$3" suffix="$4"
 
@@ -143,37 +159,45 @@ pairs() {
         printf '[ no subjects ] %s\n' "$id"
         printf '                prevents: %s\n' "$prevents"
         printf '                scope:    %s (0 tracked files)\n' "$scope"
-        printf '                rule:     every file has <name>%s beside it\n' "$suffix"
+        printf '                rule:     every file has <name>%s beside it, and\n' "$suffix"
+        printf '                          every <name>%s has its file\n' "$suffix"
         printf '                NOTHING WAS SEARCHED. This entry refused nothing.\n'
         return
     fi
 
     checked=$((checked + 1))
 
-    local missing=""
+    local unpaired=""
     while IFS= read -r f; do
         case "$f" in
-            *"$suffix") continue ;;
+            *"$suffix")
+                if [ ! -f "${f%"$suffix"}" ]; then
+                    unpaired="${unpaired}no recording for ${f}"$'\n'
+                fi
+                continue
+                ;;
         esac
         if [ ! -f "${f}${suffix}" ]; then
-            missing="${missing}${f}"$'\n'
+            unpaired="${unpaired}no manifest for ${f}"$'\n'
         fi
     done < "$scratch"
 
-    if [ -z "$missing" ]; then
+    if [ -z "$unpaired" ]; then
         printf '[ pass        ] %s\n' "$id"
         printf '                prevents: %s\n' "$prevents"
         printf '                scope:    %s (%s tracked files)\n' "$scope" "$subjects"
-        printf '                rule:     every file has <name>%s beside it\n' "$suffix"
+        printf '                rule:     every file has <name>%s beside it, and\n' "$suffix"
+        printf '                          every <name>%s has its file\n' "$suffix"
     else
         failed=$((failed + 1))
         printf '[ FAIL        ] %s\n' "$id"
         printf '                prevents: %s\n' "$prevents"
         printf '                scope:    %s (%s tracked files)\n' "$scope" "$subjects"
-        printf '                rule:     every file has <name>%s beside it\n' "$suffix"
-        printf '%s' "$missing" > "$scratch"
+        printf '                rule:     every file has <name>%s beside it, and\n' "$suffix"
+        printf '                          every <name>%s has its file\n' "$suffix"
+        printf '%s' "$unpaired" > "$scratch"
         while IFS= read -r f; do
-            printf '                  no manifest for %s\n' "$f"
+            printf '                  %s\n' "$f"
         done < "$scratch"
     fi
 }
@@ -336,8 +360,8 @@ refuse \
     'src/sternwarte'
 
 pairs \
-    'every-recording-has-a-manifest-beside-it' \
-    'a recording whose survey, release, query and record date are unknown, which is a recording nobody can tell is stale' \
+    'recording-and-manifest-exist-as-a-pair' \
+    'a recording whose survey, release, query and record date are unknown, which is a recording nobody can tell is stale, and a manifest whose recording is absent, which is a description of bytes no test can read' \
     'tests/responses' \
     '.manifest.json'
 
