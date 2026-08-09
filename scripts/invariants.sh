@@ -323,6 +323,20 @@ refuse \
     '\b(requests\.(get|post|put|patch|delete|head|options|request|Session)|urllib\.request|urlopen|httpx\.|aiohttp\.|socket\.socket|pyvo\.|astroquery)' \
     'src/sternwarte' ':(exclude)src/sternwarte/fetch'
 
+# The entry above stops at the fetch layer, which is the one place a call like
+# this would look ordinary. `no-network-outside-the-fetch-layer` excludes
+# `src/sternwarte/fetch` because that directory is what the network is for, so a
+# version check or a crash report written there is invisible to it. This entry
+# has no exclusion for exactly that reason, and it names call and import shapes
+# rather than the bare words, because a spacecraft's telemetry is ordinary
+# vocabulary in this field and a rule that refused the word would be refusing
+# the domain.
+refuse \
+    'no-telemetry-no-crash-reporting-no-update-check' \
+    'a build that reports usage, an exception or a version check off the operator machine, which the position this project takes says is absent rather than switched off, and which a reader cannot discover from a document that only promises it' \
+    '(?i)\b(?:import|from)\s+(?:sentry_sdk|posthog|mixpanel|amplitude|bugsnag|rollbar|opentelemetry|ddtrace|datadog|analytics)\b|\b(?:sentry_sdk|posthog|mixpanel|bugsnag|rollbar|ddtrace)\.\w+\(|\b(?:analytics|telemetry|metrics)\.(?:track|capture|record|send|report)\(|\b(?:check_for_updates?|check_update|update_check|latest_version|latest_release|phone_home|report_usage|usage_report|send_telemetry|crash_report(?:ing)?)\b|\b(?:pypi\.org|api\.github\.com)\b' \
+    'src/sternwarte'
+
 refuse \
     'no-environment-read-outside-the-command-line' \
     'a library reaching into the environment for a token and carrying it into a repr, a log line or a cached object' \
