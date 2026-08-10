@@ -49,7 +49,7 @@ another row's reasoning is not counted twice, and several do occur there.
 | `Analyze (csharp)` | Replaced | Becomes `Analyze (python)`, which produces a check run under that name today, landed by #28. Same scanner, different language pack, same class of finding. The same workflow also produces `Analyze (actions)`, because the workflow definitions here hold privilege and are analysed alongside the source. |
 | `DCO sign-off` | Kept | Runs here unchanged and produces a check run under this name today. |
 | `Deterministic PR-hygiene checks` | Kept | Runs here unchanged and produces a check run under this name today, landed by #31. |
-| `Enforce greppable invariants` | Replaced | Keeps the name, produces a check run under it today, and gets a different table, landed by #30. The invariants there are about a login path; the ones here are about where a network call, a credential read and a unit conversion may appear. The table is in `scripts/invariants.sh`. Eight of its nine entries search a scope that holds no tracked file while the package is absent, and the script reports that rather than passing quietly; the ninth reads two documents that are already here. |
+| `Enforce greppable invariants` | Replaced | Keeps the name, produces a check run under it today, and gets a different table, landed by #30. The invariants there are about a login path; the ones here are about where a network call, a credential read and a unit conversion may appear. The table is in `scripts/invariants.sh` and it grows as the issues that own each entry land, so how many entries it holds and how many of them searched anything is measured below rather than restated here. |
 | `Reject Trojan Source Unicode` | Kept | Runs here unchanged and produces a check run under this name today. |
 | `Audit workflows (zizmor)` | Kept | Runs here unchanged and produces a check run under this name today. |
 | `prettier` | Dropped | There is no JavaScript, HTML or stylesheet in this tree, so the formatter it exists to keep consistent has nothing to be consistent with, and Python formatting is covered inside #21 by the formatter run in check mode. |
@@ -105,16 +105,23 @@ the other way and appears only here. So a reader sampling a merge commit sees
 four of the thirteen contexts covered and a reader sampling the head sees eight,
 and neither number is a statement about coverage.
 
-The check named `Enforce greppable invariants` runs a table of nine entries, one
-of which has tracked files to read. The other eight have an empty scope, and the
-script says so instead of reporting a pass:
+The check named `Enforce greppable invariants` runs a table whose length is a
+moving number, because each entry arrives with the issue that owns it. One entry
+has tracked files to read and every other one has an empty scope, and the script
+says so instead of reporting a pass:
 
     bash scripts/invariants.sh | grep -c '^\['
-    9
+    11
     bash scripts/invariants.sh | tail -3
-    Summary: 1 checked, 8 with no subjects, 0 failed, 0 scanner errors
-    Passing, and 8 of the entries above searched nothing at all.
+    Summary: 1 checked, 10 with no subjects, 0 failed, 0 scanner errors
+    Passing, and 10 of the entries above searched nothing at all.
     That is a green run over an absent subject, not a clean tree.
+
+Both counts were taken at `34d1b189f1e18e62ecb9f1f207bc55b581725ef9`, the commit
+this change is based on, and this change touches no file the script reads. The
+script prints the tree it read on its second line, so a reader can tell whether
+the two numbers above are still that tree's. Nothing keeps them true, and the
+commands are here so a reader takes their own reading rather than this one.
 
 The one entry with a subject reads two documents rather than source, so it is
 here before the package is:
@@ -125,9 +132,10 @@ here before the package is:
                     scope:    docs/failure-modes.md docs/decisions/0007-output-artefact.md (2 tracked files)
 
 So the counterpart to that context exists, is wired in, and refuses nothing
-today. Eight of the nine entries have not searched a byte, because the paths they
-look at arrive with the package, and the ninth searched and found nothing wrong.
-Neither of those is coverage of the login-path invariants this context replaces.
+today. Every entry but that one has not searched a byte, because the paths they
+look at arrive with the package, and the one that did search found nothing
+wrong. Neither of those is coverage of the login-path invariants this context
+replaces.
 
 None of the eleven is required by the ruleset on this repository's protected
 branch.
@@ -237,6 +245,14 @@ context added or removed on the other board, or a counterpart issue closed
 without its check existing, leaves this document saying what it said before. The
 three commands above are what a reader runs to find that out, and they are run
 by a person.
+
+That has already happened here. The invariants section read nine entries with
+eight of them searching nothing, and by the time it was re-run two more entries
+had landed, the telemetry refusal under #64 and the type-ignore refusal under
+#22. The gate stayed green through both, because no check compares this
+document to the script it describes. Every count this document takes from this
+tree therefore names the commit it was taken at, and one without a commit beside
+it is a number nobody can re-run.
 
 The table also claims nothing about whether a counterpart is as good as what it
 replaces. Every replacement above is a named issue or a running check, which is
