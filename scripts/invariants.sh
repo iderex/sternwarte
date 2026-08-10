@@ -12,7 +12,7 @@
 #
 # The workflow runs exactly this command. There is no second spelling.
 #
-# Three things this script refuses to do quietly.
+# What this script refuses to do quietly.
 #
 # It prints EVERY entry in the table with its own verdict, so a run that covered
 # less than the table cannot be read as one that covered it and found nothing.
@@ -20,6 +20,19 @@
 # It distinguishes "no subjects" from "pass". An entry whose scope holds no
 # tracked file has refused nothing, and reporting that as a pass is how an empty
 # gate reads as a clean one. Those entries are counted separately in the summary.
+#
+# IT READS EVERY SUBJECT IN THE SCOPE, INCLUDING THE ONES GIT CALLS BINARY.
+# `.gitattributes` marks `*.fits`, `*.gz` and `*.zip` binary so that git never
+# rewrites a byte inside a recorded archive response, and those are the formats
+# a response arrives in. `git grep -I` skips a file carrying that attribute
+# whatever its bytes are, so a recording in one of them was counted as a
+# subject, never read, and reported as a pass. That is the failure the paragraph
+# above refuses, one level down: a verdict printed about a file nothing looked
+# at, and printed as `pass` rather than as `no subjects`, so the summary counted
+# it among the entries that had searched something. `-a` reads them. The cost is
+# that a refusal over a genuinely binary file prints the bytes around the match
+# instead of a line somebody can read, which is a worse message about a file
+# that should not have been committed rather than a reason to keep skipping it.
 #
 # It fails closed on a scanner error. `git grep` exits 0 on a match, 1 on no
 # match, and 2 or above when it could not do its job. A broken scanner is not a
@@ -90,7 +103,9 @@ refuse() {
 
     checked=$((checked + 1))
 
-    git grep -nIP -- "$pattern" -- "$@" > "$scratch" 2>&1 < /dev/null || rc=$?
+    # `-a` and not `-I`, so a subject git calls binary is read rather than
+    # skipped and counted. The reason and its cost are in the header.
+    git grep -naP -- "$pattern" -- "$@" > "$scratch" 2>&1 < /dev/null || rc=$?
 
     case "$rc" in
         1)
