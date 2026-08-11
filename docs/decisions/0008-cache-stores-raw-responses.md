@@ -77,8 +77,8 @@ states one.
 - Caching the parsed table. Cheaper on disk and it destroys the evidence. Every
   later parser fix then needs the network to be tested against reality.
 - A shared or remote cache. It puts what an operator looked at, and when, on
-  somebody else's machine. That crosses the boundary described below and is not
-  done by default.
+  somebody else's machine. That crosses the boundary this entry draws under
+  `The cache never leaves the host`, and is not done by default.
 - Time-based expiry. An expiry that refetches a response is an automatic,
   unrecorded change of the input data, and it fires on the calendar rather than
   on anything about the data.
