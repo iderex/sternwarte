@@ -74,13 +74,25 @@ that made the claim stays exactly as it was written.
 
 Nothing in this repository refuses an entry that skips a section, names no
 rejected alternative, takes a number already used, edits a superseded entry in
-place, or lands after the code it claims to precede. The workflows in
-`.github/workflows/` read the actions, the dependency diff and the tracked text
-for dangerous Unicode, and none of them reads this directory:
+place, or lands after the code it claims to precede. Every rule above is read by
+a person. This document explains the rules; it is not the thing that holds them.
 
-    git grep -l 'docs/decisions' -- .github/ ; echo "exit=$?"
-    exit=1
+One file in this directory is read by a check, and it is read for something
+else. `Enforce greppable invariants` runs `scripts/invariants.sh`, whose
+`failure-mode-signature-names-a-real-artefact-field` entry takes
+`docs/decisions/0007-output-artefact.md` as the authority for which artefact
+keys exist, and refuses a `Signature:` line in `docs/failure-modes.md` naming a
+key that entry does not carry:
 
-An exit of 1 from `git grep` is no match. Every rule above is therefore read by
-a person and refused by no machine. This
-document explains the rules; it is not the thing that holds them.
+    git grep -l 'docs/decisions' -- .github/ scripts/
+    scripts/invariants.sh
+
+The pathspec covers `scripts/` as well as `.github/`, because the reference sits
+in the script the workflow runs and not in the workflow. Searching `.github/`
+alone returns nothing and reports this directory as unread, which is what it
+said here before.
+
+So an edit here can redden that check, in one direction: removing or renaming a
+key the failure catalogue points at. It judges nothing about the shape of an
+entry, the number it took, or the order it landed in, and it reads no other file
+in this directory. The sentence above is unchanged by it.
