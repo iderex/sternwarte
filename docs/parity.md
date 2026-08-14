@@ -29,7 +29,7 @@ replaces it with a named counterpart, or drops it, and a replacement or a drop
 carries its reasoning.
 
 Each of the thirteen is the first column of exactly one row of the table below,
-so what the table covers is extracted rather than counted by eye:
+so what the table covers is extracted by command:
 
     sed -n 's/^| `\([^`]*\)` |.*/\1/p' docs/parity.md
 
@@ -43,13 +43,13 @@ another row's reasoning is not counted twice, and several do occur there.
 | --- | --- | --- |
 | `build` | Replaced | An interpreted language has no compile step, so the compile-time coverage is split across `lint (ruff)` in #21, `types (mypy strict)` in #22 and the `tests (...)` matrix in #23, which catch the same class before a test runs. |
 | `ABI floor build` | Replaced | Becomes `oldest supported dependencies` in #27. There is no binary interface to hold here, and the equivalent risk is the same one: a declared minimum that nothing ever executed. |
-| `Package (JPRM) / Build package` | Replaced | Becomes `Package (wheel) / build` in #66. The artefact is a wheel and a source distribution rather than a plugin package, so the packaging step differs while what it proves does not. |
+| `Package (JPRM) / Build package` | Replaced | Becomes `Package (wheel) / build` in #66. The artefact is a wheel and a source distribution, so the packaging step differs while what it proves does not. |
 | `Package (JPRM) / Generate SBOM` | Replaced | Becomes `Package (wheel) / SBOM` in #66, for the same reason, over the same artefact. |
-| `CodeQL` | Kept | Produces a check run under this name today, landed by #28. It is the code scanning results check rather than a job in the workflow, so it reports whether the analysis found anything new and the two `Analyze (...)` jobs below are what performed it. |
+| `CodeQL` | Kept | Produces a check run under this name today, landed by #28. It is the code scanning results check, so it reports whether the analysis found anything new and the two `Analyze (...)` jobs below are what performed it. |
 | `Analyze (csharp)` | Replaced | Becomes `Analyze (python)`, which produces a check run under that name today, landed by #28. Same scanner, different language pack, same class of finding. The same workflow also produces `Analyze (actions)`, because the workflow definitions here hold privilege and are analysed alongside the source. |
 | `DCO sign-off` | Kept | Runs here unchanged and produces a check run under this name today. |
 | `Deterministic PR-hygiene checks` | Kept | Runs here unchanged and produces a check run under this name today, landed by #31. |
-| `Enforce greppable invariants` | Replaced | Keeps the name, produces a check run under it today, and gets a different table, landed by #30. The invariants there are about a login path; the ones here are about where a network call, a credential read and a unit conversion may appear. The table is in `scripts/invariants.sh` and it grows as the issues that own each entry land, so how many entries it holds and how many of them searched anything is measured below rather than restated here. |
+| `Enforce greppable invariants` | Replaced | Keeps the name, produces a check run under it today, and gets a different table, landed by #30. The invariants there are about a login path; the ones here are about where a network call, a credential read and a unit conversion may appear. The table is in `scripts/invariants.sh` and it grows as the issues that own each entry land, so how many entries it holds and how many of them searched anything is measured below. |
 | `Reject Trojan Source Unicode` | Kept | Runs here unchanged and produces a check run under this name today. |
 | `Audit workflows (zizmor)` | Kept | Runs here unchanged and produces a check run under this name today. |
 | `prettier` | Dropped | There is no JavaScript, HTML or stylesheet in this tree, so the formatter it exists to keep consistent has nothing to be consistent with, and Python formatting is covered inside #21 by the formatter run in check mode. |
@@ -75,14 +75,14 @@ request and the checks that run on a push:
     zizmor	success	github-advanced-security
 
 Eleven names, and the two from `github-advanced-security` are results checks over
-what a scanner uploaded rather than jobs in a workflow file. Four of the eleven
+what a scanner uploaded, and no workflow file declares them as jobs. Four of the eleven
 are not first-column entries in the table above: `Analyze (python)` and
 `Analyze (actions)` are the jobs behind `CodeQL` and the counterpart named in the
 `Analyze (csharp)` row, `Static analysis (opengrep)` is in the added list below,
 and `zizmor` is the results check beside the job named `Audit workflows (zizmor)`.
 The first column holds only the thirteen contexts the other board requires, so a
 name that runs here without being required there belongs in a row's reasoning or
-in the added list rather than in the column.
+in the added list.
 
 Which commit is quoted decides what the answer looks like, so the merge commit on
 top of that head is worth reading beside it:
@@ -97,8 +97,7 @@ top of that head is worth reading beside it:
     Scorecard analysis
     Static analysis (opengrep)
 
-Seven rather than eleven, and the difference is the trigger rather than a
-failure. `DCO sign-off`, `dependency-review` and `Deterministic PR-hygiene
+Seven, and the four that are missing follow from the trigger. No run failed. `DCO sign-off`, `dependency-review` and `Deterministic PR-hygiene
 checks` are declared on `pull_request` alone, and `CodeQL` and `zizmor` are
 results checks a pull request gets and a push does not. `Scorecard analysis` goes
 the other way and appears only here. So a reader sampling a merge commit sees
@@ -121,9 +120,9 @@ Both counts were taken at `34d1b189f1e18e62ecb9f1f207bc55b581725ef9`, the commit
 this change is based on, and this change touches no file the script reads. The
 script prints the tree it read on its second line, so a reader can tell whether
 the two numbers above are still that tree's. Nothing keeps them true, and the
-commands are here so a reader takes their own reading rather than this one.
+commands are here so a reader takes their own reading.
 
-The one entry with a subject reads two documents rather than source, so it is
+The one entry with a subject reads two documents, so it is
 here before the package is:
 
     bash scripts/invariants.sh | grep -A2 '^\[ pass'
@@ -139,7 +138,7 @@ replaces.
 
 None of the eleven is required by the ruleset on this repository's protected
 branch.
-What that ruleset holds is read rather than described:
+What that ruleset holds is read out here:
 
     gh api repos/iderex/sternwarte/rulesets/20519818 \
       --jq '{enforcement, bypass: .bypass_actors, required: [.rules[].type]}'
@@ -152,23 +151,21 @@ not a thing the merge asked for.
 ## Added, because this project carries risks the original does not
 
 - `coverage floor`, #24. A wrong coefficient here does not crash, it publishes,
-  so the amount of the calibration that any test reaches is gated rather than
-  reviewed.
+  so the amount of the calibration that any test reaches is gated.
 - `no network in the gating suite`, #25. Seven external services are in scope,
-  so the suite's independence from them is refused rather than requested.
+  so the suite's independence from them is enforced by a refusal.
 - `lockfile is frozen`, #26. A scientific dependency tree moves week to week,
   and a moving floor makes every failure ambiguous between the code and a
   dependency.
 - `Static analysis (opengrep)`, landed by #29 and producing a check run under
-  that name today, as a gate rather than a scheduled scan. Untrusted input
+  that name today, as a gate on every pull request. Untrusted input
   arriving from seven archives is the dominant class here, and a scan whose
   result nobody has to look at before merging is not a gate.
 
 ## The mutation gate, which that board runs without requiring it
 
 The thirteen contexts above are what that board's ruleset requires. It runs more
-than it requires, and one of those has a counterpart here, so it is recorded
-rather than left out of a document about parity. This section covers that one
+than it requires, and one of those has a counterpart here, so it is recorded here. This section covers that one
 check. It is not a survey of everything that board runs outside its required
 list.
 
@@ -197,11 +194,10 @@ The counterpart here is `.github/workflows/mutation.yml`, which #35 owns, over
 the transformation code and the ensemble solve. It runs on a schedule for the
 same reason. A mutation run re-executes the covered tests once per mutant, which
 over numerical code is slow enough that gating it would put every pull request
-behind it, and what it produces is a missing assertion rather than a broken
-build. So a survivor opens an issue naming the mutant and the module, and the
+behind it, and what it produces is a missing assertion while the build still works. So a survivor opens an issue naming the mutant and the module, and the
 change that happened to be in flight is not reddened by a gap it did not create.
 
-One deviation is worth stating here rather than leaving it to be found later. The
+One deviation belongs in this document. The
 run on that board reports its score and never fails on it, because its break
 threshold is zero:
 
@@ -236,7 +232,7 @@ records a counterpart that is owed, not one that is running.
 - The package manifest freshness check and the nightly build. No issue in this
   repository owns either of them today. Both are about a published distribution
   and the machinery around it, so they belong with #67, and this line records
-  that they are unclaimed rather than covered.
+  that they are unclaimed.
 
 ## What this document does not do
 
@@ -257,5 +253,4 @@ it is a number nobody can re-run.
 The table also claims nothing about whether a counterpart is as good as what it
 replaces. Every replacement above is a named issue or a running check, which is
 what makes the claim checkable; whether the coverage is actually equivalent is a
-judgement, and it is settled by the pull request that lands each counterpart
-rather than here.
+judgement, and it is settled by the pull request that lands each counterpart.
