@@ -87,8 +87,8 @@ one that is answered first.
 Once a license exists, continuation needs no permission and no handover: fork it,
 and say in the fork's README that it is a fork and from where. The maintainer
 does not undertake to transfer the repository, the name or the distribution
-channel, and a plan that depended on that would be a plan depending on somebody
-being available, which is the condition this section exists for.
+channel. A plan that depended on that would depend on somebody being available,
+and nobody's availability is guaranteed here.
 
 ## The limits of this document
 

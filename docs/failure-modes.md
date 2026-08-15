@@ -25,14 +25,13 @@ document does not carry:
 The entry id is `failure-mode-signature-names-a-real-artefact-field`. A
 `Signature:` line is one physical line, because the check reads that line and not
 what follows it, and a list wrapped onto a second line would put half its keys
-where nothing looks. A line left ending in a comma is refused for that reason
-rather than passed. What else the check can and cannot decide is written at the
+where nothing looks. A line left ending in a comma is refused for that reason. What else the check can and cannot decide is written at the
 entry itself and repeated in the last section here, because a check whose bound
 is only in the script is a check a reader of this document will overestimate.
 
-Two cases below carry no signature at all, and one carries a partial one. That is
-a defect in the artefact rather than a gap in this catalogue: a case a reader
-cannot detect from the file is a case the file owes a field for. Each of the
+Two cases below carry no signature at all, and one carries a partial one. The defect is
+in the artefact and not in this catalogue: a case a reader cannot detect from
+the file is a case the file owes a field for. Each of the
 three names the open issue that decides what the artefact carries, and none of
 them is answered by anything written here:
 
@@ -48,8 +47,8 @@ solve an offset against, or none.
 
 The output looks like a series with one or more surveys missing from the joint
 solve, and a shorter baseline than the position alone would suggest. The
-dangerous reading is that the missing survey contributed a zero offset rather
-than nothing.
+dangerous reading is that the missing survey contributed a zero offset, when
+what it contributed is nothing.
 
 Signature: `ensemble_excluded_crowding`, `ensemble_count`, `excluded`, `exclusion_reason`
 
@@ -75,11 +74,11 @@ Signature: `colour_extrapolation`, `colour_used`, `colour_source`, `transformati
 
 What to do instead. `colour_extrapolation` is zero when the target's colour lies
 inside the span and carries the distance outside it in magnitudes when it does
-not. Read it per survey rather than once: the same target can be inside one
+not. Read it per survey: the same target can be inside one
 survey's ensemble span and outside another's. Where it is non-zero, the
 transformation's own validity range in colour is in
 `transformation_coefficients`, and the honest treatment is to widen the
-uncertainty by hand rather than to quote the fitted one.
+uncertainty by hand, because the fitted one understates it.
 
 ## A target brighter than a survey's saturation limit
 
@@ -102,8 +101,8 @@ carries and is open.
 What to do instead. Until the artefact carries the field, this case is detected
 from outside the file. Take the target's brightness in the survey's band, compare
 it against that survey's published saturation limit, and read the per-survey
-`residual_scatter` for a survey that is anomalously well behaved rather than
-anomalously bad, because a flattened series scatters less than a real one.
+`residual_scatter` for a survey that is anomalously well behaved, because a
+flattened series scatters less than a real one.
 
 ## A target with high proper motion and no motion measured for it
 
@@ -121,10 +120,10 @@ Signature: `target_proper_motion`, `target_resolved`
 
 What to do instead. `target_proper_motion` carries the motion and reference epoch
 applied and its source. An explicit null there is the case named here, and the
-artefact's own rule is that an unknown value is written as a null rather than
-omitted, so the absence is legible rather than silent. Supply a motion where one
+artefact's own rule is that an unknown value is written as a null and never
+omitted, so the absence stays legible. Supply a motion where one
 is known from elsewhere, and treat a series whose oldest epochs appear without a
-propagated position as unmatched rather than as measured.
+propagated position as unmatched.
 
 ## A position outside the oldest survey's footprint
 
@@ -134,8 +133,8 @@ whole sky. For a position outside it the series starts decades later than the
 claim.
 
 The output looks like a perfectly good light curve. Nothing about it is wrong.
-What is wrong is a reader assuming the baseline from the tool rather than from
-the file.
+What is wrong is a reader taking the baseline from the tool's description. It is
+in the file.
 
 Signature: `excluded`, `exclusion_reason`, `epoch_count`
 
@@ -160,8 +159,7 @@ Signature: `transformation_route`, `ensemble_count`, `excluded`, `exclusion_reas
 
 What to do instead. Read `transformation_route` across the per-survey blocks
 before reading the series. Several surveys naming no route, or naming a route
-that does not pass through the hub, is this case rather than a coincidence of
-independent failures, and the offsets that did solve are then tied to each other
+that does not pass through the hub, is what this case looks like, and the offsets that did solve are then tied to each other
 rather than to the reference system.
 
 ## A survey excluded because no route to the reference system existed
@@ -257,8 +255,8 @@ every "what to do instead" above is reasoning from the plan and not a procedure
 anybody has run against a real reduction, and the entries carry no evidence that
 the signature they name would actually fire.
 
-The check that reads this file has three bounds worth stating where a reader of
-the document will meet them rather than only in the script. It reads the lines
+The check that reads this file has three bounds, and they are worth stating
+where a reader of the document will meet them and not only in the script. It reads the lines
 beginning `Signature:` and nothing else, so an artefact key named in the prose of
 an entry is not checked. It decides whether a name appears in
 `docs/decisions/0007-output-artefact.md` and never whether that key means what the

@@ -158,9 +158,8 @@ lower than it would otherwise be, and there is no risk to the artefact.
 
 ## The two hygiene rules, and what holds them
 
-Both of these hold in the workflows tracked here today. This section exists so
-that they keep holding as workflows are added, and the workflow audit gate is
-what reads them on a change.
+Both of these hold in the workflows tracked here today, and the workflow audit
+gate is what reads them when a workflow is added or changed.
 
 Every action is pinned to a commit and carries its version in a comment. The
 command lists every `uses:` line that is not a 40-character pin followed by a
